@@ -1,0 +1,285 @@
+# cda work
+
+# enter data as matrix and assign dimension names
+aspirin <- matrix(data = c(189, 104, 10845, 10933), 
+                  ncol=2, 
+                  dimnames = list("group" = c("Placebo","Aspirin"),
+                                  "MI" = c("Yes","No")))
+
+aspirinT <- as.table(aspirin)
+class(aspirinT)
+
+as.data.frame(aspirin)
+as.data.frame(aspirinT) # returns column of Frequencies
+
+# calculate cell proportions
+prop.table(aspirin)
+prop.table(aspirin, margin = 1)
+prop.table(aspirin, margin = 2)
+
+# calculate row and column marginal totals
+margin.table(aspirin)
+margin.table(aspirin, margin = 1)
+margin.table(aspirin, margin = 2)
+
+# add margins to a table
+addmargins(aspirin)
+
+# compare proportions
+prop.test(aspirin)
+# assumes counts of successes and failures are in the columns;
+# gives CI of difference in proportions if only two groups
+
+# can also use counts of success and trials
+prop.test(x = c(189, 104), n = c(11034, 11037))
+
+# The epitools package provides functions for odds ratios and risk ratios
+library(epitools)
+
+riskratio(x = aspirin)
+riskratio(x = aspirin, rev = "columns")
+riskratio(x = aspirin, rev = "both")
+
+oddsratio(x = aspirin, rev = "both")
+
+
+# make an aspirin data frame
+# id <- seq(sum(margin.table(aspirin,margin = 1)))
+grp <- rep(c("placebo","aspirin"), margin.table(aspirin,margin = 1))
+mi <- c(rep(c("yes","no"), aspirin[1,]),rep(c("yes","no"), aspirin[2,]))
+aspirin.df <- data.frame(grp, mi = factor(mi, levels = c("yes","no")))
+head(aspirin.df)
+
+xtabs(~ grp + mi, data=aspirin.df)
+asp.table <- xtabs(~ grp + mi, data=aspirin.df)
+summary(asp.table)
+
+as.data.frame(aspirin)
+as.data.frame(as.table(aspirin))
+
+aspirin.tab <- as.table(aspirin)
+
+library(vcd)
+oddsratio(aspirin)
+epitools::oddsratio(aspirin, rev = "both")
+
+# sieve plot?
+
+# gender gap example
+genderGap <- matrix(c(279, 165, 73, 47, 225, 191), ncol=3)
+rownames(genderGap) <- c("Females","Males")
+colnames(genderGap) <- c("Democrat","Independent","Republican")
+
+prop.table(genderGap, margin = 1)
+chisq.test(genderGap)
+c.out <- chisq.test(genderGap)
+str(c.out)
+c.out$expected
+c.out$residuals
+c.out$stdres # adjusted residuals, Table 2.6
+
+# visualize the table and the residuals
+mosaicplot(genderGap)
+mosaicplot(genderGap, shade = TRUE)
+
+genderGap
+genderGap2 <- matrix(c(apply(genderGap[,-3],1,sum), genderGap[,3]),ncol=2)
+rownames(genderGap2) <- c("Females","Males")
+colnames(genderGap2) <- c("Democrat/Independent","Republican")
+genderGap2
+chisq.test(genderGap2)
+
+# Notes on chi-square tests
+# - simply indicate degree of evidence for association
+# - study residuals to investigate nature of association
+# - estimate parameters such as odds ratios to estimate strength of association
+# - like fire, the chi-square test is an excellent servant and a bad master
+#   - Sir Austin Bradford Hill
+
+infantMal <- matrix(c(17066,14464,788,126,37,48,38,5,1,1),ncol=2)
+rownames(infantMal) <- c("0","<1","1-2","3-5",">=6")
+colnames(infantMal) <- c("Absent","Present")
+
+prop.trend.test(x = infantMal[,2], n = margin.table(infantMal,1), 
+                score = c(0, 0.5, 1.5 ,4, 7))
+
+IM2 <- as.data.frame(as.table(infantMal))
+names(IM2) <- c("Alcohol.Consumption","Malformation","Freq")
+
+
+
+library(DescTools)
+CochranArmitageTest(x = t(infantMal))
+
+# Three way contingency tables
+
+# Death penalty example
+# Table 3.1
+# 2 x 2 x 2 contingency table
+dp <- array(data = c(53,11,414,37,0,4,16,139),
+            dim = c(2,2,2),
+            dimnames = list("defendant.race" = c("white","black"),
+                            "death.penalty" = c("yes","no"),
+                            "victim.race" = c("white","black")))
+dp
+# extract each partial table
+dp[,,1]
+dp[,,2]
+
+# Flatten table
+ftable(dp)
+ftable(dp, row.vars = c("victim.race","defendant.race"))
+
+# convert to data frame with Freq column
+# and save to csv file
+dpFreq <- as.data.frame(as.table(dp))
+write.csv(dpFreq, file = "death_penalty.csv", row.names = FALSE)
+
+# turn into data frame with one row per observation
+# and save to csv file
+rep2 <- function(x){
+  dpFreq[rep(x,dpFreq$Freq[x]),-4]
+}
+out <- lapply(1:8, rep2)
+dp.df <- do.call(rbind,out)
+dp.df <- dp.df[sample(nrow(dp.df)),]
+write.csv(dp.df, file = "death_penalty2.csv", row.names = FALSE)
+
+
+# import data frames
+dp2 <- read.csv("death_penalty.csv")
+dp2
+dp3 <- read.csv("death_penalty2.csv")
+head(dp3)
+
+# create tables from data frames
+# ~ row + column + layer
+xtabs(Freq ~ defendant.race + death.penalty + victim.race, data = dp2)
+xtabs(~ defendant.race + death.penalty + victim.race, data = dp3)
+
+# To change order of rows and columns need to change order of levels
+dp2$defendant.race <- factor(dp2$defendant.race, levels = c("white","black"))
+dp2$victim.race <- factor(dp2$victim.race, levels = c("white","black"))
+dp2$death.penalty <- factor(dp2$death.penalty, levels = c("yes","no"))
+
+# now it matches what we created by hand
+xtabs(Freq ~ defendant.race + death.penalty + victim.race, data = dp2)
+
+
+# total number of subjects
+sum(dp)
+
+# study effect of defendant's race on death penalty verdict, treating victim's
+# race as control variable
+
+# each layer in the array is a partial table that display conditional
+# associations.
+
+prop.table(dp, margin = c(1,3))
+
+# when victims were white, death penalty was imposed 22.9% - 11.3% = 11.6% more 
+# often for black defendents.
+
+# marginal table that does not control for victim's race; margin = c(1,2) means
+# add the cells in the row and columns over each layer
+dpMarginal <- margin.table(dp, margin = c(1,2))
+
+prop.table(dpMarginal, margin = 1)
+
+# In the marginal table, death penalty was imposed 11.0% - 7.9% = 3.1% more 
+# often for white defendents.
+
+# association reverses direction; this is known as Simpson's Paradox
+
+# mosaicplot(dp2)
+# mosaicplot(~ victim.race + death.penalty + defendant.race, data = dp)
+
+library(epitools)
+# odds ratio in first partial table
+oddsratio(dp[,,1], rev = "both")
+
+# sample odds for white defendants receiving the death penalty were 43% of the
+# sample odds for black defendant
+
+# odds ratio in second partial table
+oddsratio(dp[,,2]) # error due to 0 count!
+oddsratio(dp[,,2], method = "wald") # use method = "wald" to force calculation
+
+# odds ratio for the marginal table
+oddsratio(dpMarginal)
+# sample odds of death penalty were 45% higher for white defendants than for
+# black defendants
+
+
+# homogeneous association
+
+# when conditional odds ratio between X and Y is identical at each level of Z
+
+lung.cancer <- array(data = c(126,35,100,61,
+                              908,497,688,807,
+                              913,336,747,598,
+                              235,58,172,121,
+                              402,121,308,215,
+                              182,72,156,98,
+                              60,11,99,43,
+                              104,21,89,36),
+                     dim = c(2,2,8),
+                     dimnames = list("smoking" = c("smokers","nonsmokers"),
+                                  "lung.cancer" = c("yes","no"),
+                                  "city" = c("Beijing","Shanghai","Shenyang",
+                                             "Nanjing","Harbin","Zhengzhou",
+                                             "Taiyuan","Nanchang")))
+# Table 3.3
+ftable(lung.cancer, row.vars = c("city","smoking"))
+
+oddsratio(lung.cancer[,,1])$measure
+oddsratio(lung.cancer[,,1], rev = "both")$measure
+
+# conditional odds ratios
+lapply(1:8, function(x)oddsratio(lung.cancer[,,x], rev = "both")$measure)
+
+# Cochran-Mantel-Haenszel Test 
+
+# Test that X and Y are conditionally independent given Z (ie, conditional odds
+# ratio is 1 in each partial table)
+
+# Common Odds Ratio
+
+# Estimate strength of association when association seems stable across partial tables.
+
+# The mantelhaen.test function does both
+mantelhaen.test(lung.cancer)
+
+# test is inappropriate when the association varies dramatically among the 
+# partial tables. Sample odds ratios should fall in the same direction (all
+# greater than 1, or all less than 1)
+
+# Test that odds ratios are the same at each level of Z. Test of homogeneous
+# association for 2 x 2 x K tables
+
+# Breslow-Day Test
+
+epiR::epi.2by2(lung.cancer)
+
+
+# recoding continuous to categorical
+# not often recommended; throws away information
+
+# cut function; creates a factor
+age <- round(rnorm(100,mean = 35,sd = 15))
+cut(age, breaks = c(-Inf, 10, 20, 30, 40, 50, 60, 70, Inf))
+# with custom labels
+cut(age, breaks = c(-Inf, 10, 20, 30, 40, 50, 60, 70, Inf),
+    labels = c("<10","11-20","21-30","31-40","41-50","51-60","61-70","71-80"))
+
+# another way using division and ceiling function
+ceiling(age/10)
+
+agegpname <- c("<10","11-20","21-30","31-40","41-50","51-60","61-70","71-80")
+agegpname[ceiling(age/10)] # not a factor
+
+
+# rate models -------------------------------------------------------------
+
+
+

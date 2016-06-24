@@ -1,0 +1,382 @@
+---
+title: "Introductory Categorical Data Analysis in R"
+author: "Clay Ford"
+date: "Fall 2016"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## Categorical Data
+
+In categorical data analysis, our response of interest (or dependent variable) is categorical.   
+\ 
+
+The measurement scale of categorical data is a set of categories.   
+\ 
+
+Categories can be _nominal_ or _ordered_.  
+\ 
+
+Nominal example: north, south, east, west  
+Ordinal example: mild, medium, hot, very hot  
+\ 
+
+Whether your data are nominal or ordinal determines what kinds of statistical analyses you should use.
+
+
+## Nominal/Ordinal Scale Distinction
+
+Order of categories is irrelevant for nominal data and does not affect statistical analysis.   
+\ 
+
+Order of categories is important for ordinal data and does affect the statistical analysis.   
+\ 
+
+Methods designed for ordinal data cannot be used with nominal data. The reverse is not true, but the analysis is not optimal since it does not utilize the ordering information. 
+
+## Categorical data summaries and analyses
+
+We typically tabulate category membership and calculate proportions.   
+\ 
+
+Examples of analyses:
+
+- compare proportions between two categories
+- examine the ratio of proportions or odds between two categories
+- look for an assocation between two categorical variables
+- model category proportions as a function of other variables
+- model category counts as a function of other variables
+
+The big idea of categorical data analysis is to find out if the distribution of category membership is explained by or associated with other variables. 
+
+
+## Categorical data analysis in R
+
+Three steps:
+
+1. get data into R
+2. manipulate it (if necessary) so it's suitable for analysis and/or visualization
+3. run the analysis and/or create some graphs
+
+Today we'll look at some strategies for each step that are useful for categorical data analysis.
+
+## Example 1
+
+Relationship between aspirin use and myocardial infarction (heart attacks) by the Physicians' Health Study Research Group at Harvard Medical School (_NEJM_, 318:262-264, 1988). Five year randomized study testing whether regular intake of aspirin reduces mortality from cardiovascular disease.
+
+```{r echo=FALSE}
+aspirin <- matrix(data = c(189, 104, 10845, 10933), 
+                  ncol=2, 
+                  dimnames = list("group" = c("Placebo","Aspirin"),
+                                  "MI" = c("Yes","No")))
+```
+
+
+```{r}
+aspirin
+```
+
+Are these two categorical variables associated?
+ 
+## Some analysis options
+
+1. Compare proportion of MI for placebo group versus proportion of MI for aspirin group. (Difference of Proportions)
+2. Examine ratio of MI proportions for both groups. (Risk Ratio or Relative Risk)
+3. Examine ratio of the estimated odds of MI for both groups. (Odds Ratio)
+4. Hypothesis test of independence between two variables (Chi-Square Test)
+
+## Getting the data into R "by hand"
+
+We can enter this manually if we like.
+
+```{r echo=TRUE}
+aspirin <- matrix(data = c(189, 104, 10845, 10933), 
+                  ncol = 2, 
+                  dimnames = list("group" = 
+                                    c("Placebo","Aspirin"),
+                                  "MI" = 
+                                    c("Yes","No")))
+```
+
+We now have a _contingency table_ in the form of a matrix ready for analysis.
+
+## Getting the data into R by import
+
+Data is often stored in txt, csv or xlsx formats, or stored in another stats program. There are several ways to import such data into R.
+
+- `read.table`
+- `read.csv`
+- `read_csv` in the `readr` package
+- `read_excel` in the `readxl` package
+- `read_spss`, `read_sas`, and `read_stata` in the `haven` package
+
+Importing data in this manner creates a _data frame_. To form a contingency table from variables stored in a data frame, we can use the `table` or `xtabs` functions.
+
+## The `table` function
+
+`table` forms a contingency table from vectors. Say we have a data frame called `dat` with columns called `X` and `Y`.  
+```{r echo=FALSE}
+set.seed(3)
+dat <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T))
+```
+
+```{r echo=TRUE}
+dat$X
+dat$Y
+```
+
+
+
+`table(dat$X, dat$Y)` creates a 2 x 2 table with counts of `X` on the rows and counts of `Y` on the columns.
+
+## `table` example
+
+```{r echo=TRUE}
+table(dat$X, dat$Y)
+```
+
+This works too:
+```{r results='hide', echo=TRUE}
+with(dat, table(X, Y))
+
+```
+
+## The `xtabs` function
+
+The `xtabs` function can create a table in two different ways: 
+
+1. from a data frame where there is one observation per record
+2. from a data frame where each row represents total counts
+
+Syntax:    
+
+- `xtabs( ~ X + Y, data = dat)` - one obs per record   
+- `xtabs(Freq ~ X + Y, data = dat)` - each row has total counts stored in column called `Freq`
+
+## `xtabs` example 1
+
+This returns the same thing as `table(dat$X, dat$Y)` except with rows and columns labeled:
+
+```{r echo=TRUE}
+xtabs(~ X + Y, data = dat)
+```
+
+## `xtabs` example 2
+
+Say our data looks like this:
+
+```{r echo=FALSE}
+dat2 <- as.data.frame(table(dat$X, dat$Y))
+names(dat2)[1:2] <- c("X","Y")
+```
+
+```{r echo=TRUE}
+dat2
+```
+
+## `xtabs` example 2
+
+We can use `xtabs` to create a table like so:
+
+```{r echo=TRUE}
+xtabs(Freq ~ X + Y, data = dat2)
+```
+
+
+## working with tables
+
+We sometimes want to work with tables to find proportions or marginal totals. Good functions to know include:
+
+- `prop.table` (cell proportions)
+- `margin.table` (get table margins)
+- `addmargins` (add table margins)
+
+## `prop.table` example
+
+Specify `margin = 1` for row-wise proportions, `margin = 2` for column-wise proportions.
+
+```{r echo=TRUE}
+prop.table(aspirin, margin = 1)
+```
+
+## `margin.table` example
+
+Specify `margin = 1` for row-wise margins, `margin = 2` for column-wise margins.
+
+```{r echo=TRUE}
+margin.table(aspirin, margin = 1)
+margin.table(aspirin, margin = 2)
+
+```
+
+## `addmargins` example
+
+The basic usage is to add row- and column-wise totals as well as the table total. 
+
+```{r echo=TRUE}
+addmargins(aspirin)
+```
+
+See `?addmargins` for much advanced usage.
+
+## Analysis: Chi-square test
+
+The chi-square test of independence tests the null hypothesis that two categorical variables are not associated with one another. We can use the `chisq.test` for this.
+
+```{r echo=TRUE}
+chisq.test(aspirin)
+```
+
+A low p-value rejects the null of no association. Notice it doesn't tell you the strength of association or the direction. A Chi-square test is rarely sufficient for answering all the questions you'll have about your data.
+
+## Analysis: comparing proportions
+
+We can use the `prop.test` function to compare proportions. It can take a two-dimensional table (or matrix) with 2 columns, giving the counts of successes and failures, respectively.
+
+```{r echo=TRUE}
+prop.test(aspirin)
+```
+
+## Analysis: risk ratios
+
+A difference in proportions may have greater importance when both proportions are near 0 or 1. The risk ratio is a useful descriptive measure in this case.   
+\ 
+
+Example, both differ by `0.009`:
+```{r echo=TRUE}
+0.410 / 0.401
+0.010 / 0.001
+```
+
+When risk ratio = 1, we conclude there is no difference in proportions.
+
+## Analysis: risk ratios
+
+Risk ratio for aspirin data reveals the proportion of MI for placebo group was about 82% higher:
+
+```{r echo=TRUE}
+prop.table(aspirin, margin = 1)[1,1] / 
+  prop.table(aspirin, margin = 1)[2,1]
+
+```
+
+We'll use the `epitools` package for easier calculation of risk ratios and to obtain confidence intervals.
+
+## Analysis: odds ratios
+
+The odds are related to probability as follows:
+
+$$ odds = \frac{p}{1 - p} $$
+
+For example, when $p = 0.75$:
+
+$$ 3 = \frac{0.75}{0.25} $$
+
+We expect to observe 3 successes for every 1 failure. The ratio of two odds is called an _odds ratio_. An odds ratio of 1 implies there is no difference between the odds.
+
+## Analysis: odds ratios
+
+A quick formula for estimating an odds ratio in a 2 x 2 table is
+
+$$\hat{\theta} = \frac{n_{11} n_{22}}{n_{12} n_{21}} $$
+
+For our aspirin data, the odds of MI in the placebo group is about 83% higher than the odds of MI in the aspirin group:
+
+```{r echo=TRUE}
+(aspirin[1,1] * aspirin[2,2]) / 
+  (aspirin[1,2] * aspirin[2,1])
+```
+
+Again, we'll use the `epitools` package for easier calculation of odds ratios and to obtain confidence intervals. Let's go to R!
+
+## Example 2
+
+Eight studies in China about smoking and lung cancer. (_Intern. J. Epidemiol._, 21: 197-201, 1992) We want to investigate the relationship between smoking and lung cancer while controlling for city.
+
+```{r}
+lung.cancer <- array(data = c(126,35,100,61,
+                              908,497,688,807,
+                              913,336,747,598,
+                              235,58,172,121,
+                              402,121,308,215,
+                              182,72,156,98,
+                              60,11,99,43,
+                              104,21,89,36),
+                     dim = c(2,2,8),
+                     dimnames = list("smoking" = c("smokers","nonsmokers"),
+                                  "lung.cancer" = c("yes","no"),
+                                  "city" = c("Beijing","Shanghai","Shenyang",
+                                             "Nanjing","Harbin","Zhengzhou",
+                                             "Taiyuan","Nanchang")))
+# Table 3.3
+ftable(lung.cancer, row.vars = c("city","smoking"))
+```
+
+## Some analysis options
+
+1. Test the null hypothesis that smoking and lung cancer are conditionally independent given city, that is the odds ratio = 1 for each _partial table_ (Cochran-Mantel-Haenszel Test)
+2. Test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city. (Breslow-Day Test)
+3. Estimate a _common odds ratio_ is association seems stable across the partial tables.
+
+## Getting data into R
+
+We demonstrate how to get this data into R in the R script that accompanies this workshop. The code doesn't fit comfortably onto slides.    
+\ 
+
+
+The manual method involves the `array` function that allows us to specify a third dimension, or third layer, of data.   
+\ 
+
+Once again we can use the `table` and `xtabs` functions to create our contingency tables if we import our data into a data frame.
+
+## The `table` function for 3-way tables
+
+```{r echo=FALSE}
+set.seed(1)
+dat3 <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T),
+                  Z = sample(c("Male","Female"), 10, replace = T))
+```
+
+The first vector in the `table` function forms the rows, the second the columns, and each subsequent vector a layer.
+
+```{r echo=TRUE}
+table(dat3$X, dat3$Y, dat3$Z)
+```
+
+## The `xtabs` function for 3-way tables
+
+
+
+```{r echo=TRUE}
+# one row per obs
+xtabs( ~ X + Y + Z, data = dat3) 
+```
+
+## The `xtabs` function for 3-way tables
+
+
+```{r}
+dat4 <- as.data.frame(table(dat3$X, dat3$Y, dat3$Z))
+names(dat4)[1:3] <- c("X","Y","Z")
+```
+
+```{r echo=TRUE}
+# one row per cell Freq
+xtabs(Freq ~ X + Y + Z, data = dat4) 
+```
+
+
+## Example 3
+
+Logistic regression
+
+## Topics we haven't covered
+
+
+## References
+
+Agresti, A. _An Introduction to Categorical Data Analysis_. (1996) - **The source for much of this workshop**.
