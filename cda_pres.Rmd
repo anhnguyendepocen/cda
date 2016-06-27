@@ -9,6 +9,14 @@ output: beamer_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+## workshop outline
+
+Topics on tap:
+
+- Analysis of two-way contingency tables
+- Analysis of three-way contingency tables
+- Logistic regression
+
 
 ## Categorical Data
 
@@ -19,24 +27,11 @@ The measurement scale of categorical data is a set of categories.
 \ 
 
 Categories can be _nominal_ or _ordered_.  
-\ 
 
-Nominal example: north, south, east, west  
-Ordinal example: mild, medium, hot, very hot  
-\ 
+- Nominal example: Thai, Mexican, Italian, Chinese  
+- Ordinal example: mild, medium, hot, very hot  
 
-Whether your data are nominal or ordinal determines what kinds of statistical analyses you should use.
-
-
-## Nominal/Ordinal Scale Distinction
-
-Order of categories is irrelevant for nominal data and does not affect statistical analysis.   
-\ 
-
-Order of categories is important for ordinal data and does affect the statistical analysis.   
-\ 
-
-Methods designed for ordinal data cannot be used with nominal data. The reverse is not true, but the analysis is not optimal since it does not utilize the ordering information. 
+Whether your data are nominal or ordinal determines what kinds of statistical analyses you should use. Today we'll mainly focus on nominal data with two categories.
 
 ## Categorical data summaries and analyses
 
@@ -77,7 +72,7 @@ aspirin <- matrix(data = c(189, 104, 10845, 10933),
 
 
 ```{r}
-aspirin
+addmargins(aspirin)
 ```
 
 Are these two categorical variables associated?
@@ -120,15 +115,10 @@ Importing data in this manner creates a _data frame_. To form a contingency tabl
 
 `table` forms a contingency table from vectors. Say we have a data frame called `dat` with columns called `X` and `Y`.  
 ```{r echo=FALSE}
-set.seed(3)
+set.seed(4)
 dat <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T))
+head(dat)
 ```
-
-```{r echo=TRUE}
-dat$X
-dat$Y
-```
-
 
 
 `table(dat$X, dat$Y)` creates a 2 x 2 table with counts of `X` on the rows and counts of `Y` on the columns.
@@ -187,7 +177,7 @@ xtabs(Freq ~ X + Y, data = dat2)
 ```
 
 
-## working with tables
+## working with 2-way tables
 
 We sometimes want to work with tables to find proportions or marginal totals. Good functions to know include:
 
@@ -197,7 +187,7 @@ We sometimes want to work with tables to find proportions or marginal totals. Go
 
 ## `prop.table` example
 
-Specify `margin = 1` for row-wise proportions, `margin = 2` for column-wise proportions.
+Specify `margin = 1` for row-wise proportions, `margin = 2` for column-wise proportions. Not specifying `margin` returns cell proportions summing to 1.
 
 ```{r echo=TRUE}
 prop.table(aspirin, margin = 1)
@@ -205,7 +195,7 @@ prop.table(aspirin, margin = 1)
 
 ## `margin.table` example
 
-Specify `margin = 1` for row-wise margins, `margin = 2` for column-wise margins.
+Specify `margin = 1` for row-wise margins, `margin = 2` for column-wise margins. Not specifying `margin` sums all cell totals.
 
 ```{r echo=TRUE}
 margin.table(aspirin, margin = 1)
@@ -215,7 +205,7 @@ margin.table(aspirin, margin = 2)
 
 ## `addmargins` example
 
-The basic usage is to add row- and column-wise totals as well as the table total. 
+The basic usage is to add row- and column-wise totals as well as the table total. Specifying `margin=1` or `margin=2` shows only row or column totals, respectively.
 
 ```{r echo=TRUE}
 addmargins(aspirin)
@@ -225,7 +215,7 @@ See `?addmargins` for much advanced usage.
 
 ## Analysis: Chi-square test
 
-The chi-square test of independence tests the null hypothesis that two categorical variables are not associated with one another. We can use the `chisq.test` for this.
+The chi-square test of independence tests the null hypothesis that two categorical variables are not associated with one another. We can use the `chisq.test` function for this.
 
 ```{r echo=TRUE}
 chisq.test(aspirin)
@@ -235,26 +225,30 @@ A low p-value rejects the null of no association. Notice it doesn't tell you the
 
 ## Analysis: comparing proportions
 
-We can use the `prop.test` function to compare proportions. It can take a two-dimensional table (or matrix) with 2 columns, giving the counts of successes and failures, respectively.
+Use the `prop.test` function to compare proportions of "successes". It can take a 2 x 2 table (or matrix) with counts of successes and failures, respectively, in the columns.
 
 ```{r echo=TRUE}
 prop.test(aspirin)
 ```
 
+## A drawback of difference in proportions
+
+Using the absolute difference between proportions to compare two groups can be misleading. Example:
+
+- The difference between 0.410 and 0.401 is 0.009.
+- The difference between 0.010 and 0.001 is also 0.009.
+
+However the latter difference seems more important if we compare ratios:
+
+- 0.410/0.401 = 1.02244
+- 0.010/0.001 = 10
+
+0.010 is 10 times larger than 0.001. A difference in proportions may have greater importance when both proportions are near 0 or 1.
+
 ## Analysis: risk ratios
 
-A difference in proportions may have greater importance when both proportions are near 0 or 1. The risk ratio is a useful descriptive measure in this case.   
+The _risk ratio_ (or _relative risk_) is simply the proportion of successes in one group divided the proportion of successes in the other group. A proportion of 1 implies no difference between the groups.    
 \ 
-
-Example, both differ by `0.009`:
-```{r echo=TRUE}
-0.410 / 0.401
-0.010 / 0.001
-```
-
-When risk ratio = 1, we conclude there is no difference in proportions.
-
-## Analysis: risk ratios
 
 Risk ratio for aspirin data reveals the proportion of MI for placebo group was about 82% higher:
 
@@ -266,23 +260,35 @@ prop.table(aspirin, margin = 1)[1,1] /
 
 We'll use the `epitools` package for easier calculation of risk ratios and to obtain confidence intervals.
 
-## Analysis: odds ratios
+## odds
+
+We can also compare odds of success in one group versus odds of success in another group.   
+\ 
 
 The odds are related to probability as follows:
 
 $$ odds = \frac{p}{1 - p} $$
 
-For example, when $p = 0.75$:
+- When $p = 0.75$, the odds are $\frac{0.75}{0.25} =3$. We expect to observe 3 successes for every 1 failure. 
+- When $p = 0.25$, the odds are $\frac{0.25}{0.75} \approx \frac{1}{3}$. We expect to observe about 1 success for every 3 failures. 
 
-$$ 3 = \frac{0.75}{0.25} $$
+## odds ratios
 
-We expect to observe 3 successes for every 1 failure. The ratio of two odds is called an _odds ratio_. An odds ratio of 1 implies there is no difference between the odds.
+When using odds to compare groups, we typically take the ratio of the two odds.   
+\ 
+
+The ratio of two odds is called an _odds ratio_. An odds ratio of 1 implies there is no difference between the odds of success in the two groups.    
+\ 
+
+A quick formula for calculating the odds ratio in a 2 x 2 table is
+
+$$\hat{\theta} = \frac{n_{11} n_{22}}{n_{12} n_{21}} $$
+
+For this reason, the odds ratio is also known as the _cross-product ratio_.
+
 
 ## Analysis: odds ratios
 
-A quick formula for estimating an odds ratio in a 2 x 2 table is
-
-$$\hat{\theta} = \frac{n_{11} n_{22}}{n_{12} n_{21}} $$
 
 For our aspirin data, the odds of MI in the placebo group is about 83% higher than the odds of MI in the aspirin group:
 
@@ -316,11 +322,25 @@ lung.cancer <- array(data = c(126,35,100,61,
 ftable(lung.cancer, row.vars = c("city","smoking"))
 ```
 
+## Three-way contingency tables
+
+The data on the previous slide have three categorical variables. The tabular layout is a _three-way contingency table_.    
+\ 
+
+This layout is useful when we want to compare two categorical variables while controlling for a third categorical variable.   
+\ 
+
+"Controlling for a third categorical variable" basically means holding it at a constant level while analyzing the other two categorical variables.    
+\ 
+
+The two-way table formed when controlling for a third variable is called a _partial table_.
+
+
 ## Some analysis options
 
-1. Test the null hypothesis that smoking and lung cancer are conditionally independent given city, that is the odds ratio = 1 for each _partial table_ (Cochran-Mantel-Haenszel Test)
+1. Test the null hypothesis that smoking and lung cancer are conditionally independent given city, that is the odds ratio = 1 for each partial table (Cochran-Mantel-Haenszel Test)
 2. Test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city. (Breslow-Day Test)
-3. Estimate a _common odds ratio_ is association seems stable across the partial tables.
+3. Estimate a _common odds ratio_ if association seems stable across the partial tables.
 
 ## Getting data into R
 
@@ -369,10 +389,105 @@ names(dat4)[1:3] <- c("X","Y","Z")
 xtabs(Freq ~ X + Y + Z, data = dat4) 
 ```
 
+## working with 3-way tables
 
-## Example 3
+Working with 3-way tables is a little trickier due to the third dimension. We can use the same functions, but we need to account for the third dimension.
 
-Logistic regression
+- `prop.table` (cell proportions)
+- `margin.table` (get table margins)
+- `addmargins` (add table margins)
+- `ftable` ("flatten" contingency tables into two dimensions)
+
+## `prop.table` example
+
+Specify `margin = c(1,3)` for row-wise proportions _within each two-way table_; specify `margin = c(2,3)` for column-wise proportions _within each two-way table_. Not specifying `margin` returns cell proportions summing to 1.
+
+```{r echo=TRUE}
+prop.table(lung.cancer, margin = c(1,3))
+```
+
+## `margin.table` example
+
+Specify `margin = c(1,3)` for row-wise margins _within each two-way table_; specify `margin = c(2,3)` for column-wise margins _within each two-way table_. Not specifying `margin` sums all cell totals.
+
+```{r echo=TRUE}
+margin.table(lung.cancer, margin = c(1,3))
+
+```
+
+## `addmargins` example
+
+The basic usage is to add row- and column-wise totals as well as the table total. Specifying `margin=1` or `margin=2` shows only row or column totals, respectively.
+
+```{r echo=TRUE}
+addmargins(lung.cancer)
+```
+
+## `ftable` example
+
+By default, the third layer becomes the columns while the first and second layers are collapsed into the rows. You can specify which variables form the rows and columns using the `row.vars` and `col.vars` arguments.
+
+```{r}
+ftable(lung.cancer)
+```
+
+
+
+## Analysis: Cochran-Mantel-Haenszel (CMH) Test
+
+Use the `mantelhaen.test` function to test the null hypothesis that smoking and lung cancer are conditionally independent given city (ie, odds ratio = 1 for each partial table)
+
+```{r}
+mantelhaen.test(lung.cancer)
+```
+
+
+## Common odds ratio
+
+It is more informative to estimate the strength of association than test a hypothesis about it.   
+\ 
+
+The `mantelhaen.test` also returns an estimate of the _common odds ratio_ along with a 95% confidence interval. The common odds ratio is basically a weighted average of the partial table odds ratios.     
+\ 
+
+For the lung cancer data, the commons odds ratio is estimated as $2.17 (1.98, 2.38)$. The odds of lung cancer for smokers is about twice the odds of lung cancer for non-smokers.   
+\ 
+
+The CMH Test and common odds ratio estimate is really only appropriate when association is similar in each table.
+
+## Analysis: Breslow-Day Test
+
+We can use the `epi.2by2` function in the `epiR` package to test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city.    
+\ 
+
+As we'll see in the R script, the result of the Breslow-Day Test for our lung cancer data is not significant.    
+\ 
+
+This means we're justified in summarizing the conditional association by a single odds ratio for all eight partial tables.   
+\ 
+
+Let's go to R!
+
+## Modeling categorical data
+
+Another way to analyze categorical data is to _model_ it as a linear function of one or more explanatory variables.   
+\ 
+
+By _linear function_ we mean a weighted sum of variables. Say we model Y as a linear function of X and Z and obtain the following:   
+
+$$Y = 2.6X + 0.04Z$$
+
+This says we approximate Y by adding 2.6 * X and 0.04 * Z. 
+
+## Logistic regression
+
+The most common method of modeling categorical data is _logistic regression_.
+
+- Logistic regression is for modeling binary outcomes (a categorical variable with two levels)
+- Multinomial logistic regression is for modeling multiple unordered outcomes (a nominal categorical variable with more than two levels)
+- Ordered logistic regression is for modeling multiple ordered outcomes (an ordered categorical variable with more than two levels)
+
+We will just cover binary logistic regression.
 
 ## Topics we haven't covered
 

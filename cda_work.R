@@ -8,9 +8,29 @@ aspirin <- matrix(data = c(189, 104, 10845, 10933),
 
 aspirinT <- as.table(aspirin)
 class(aspirinT)
+class(aspirin)
 
 as.data.frame(aspirin)
 as.data.frame(aspirinT) # returns column of Frequencies
+
+# create csv file of aspirin data
+MI <- c(rep("Yes", 189 + 104), rep("No", 10845 + 10933))
+group <- rep(c("Placebo","Aspirin","Placebo","Aspirin"), times=c(189, 104,10845,10933))
+aspirin.df <- data.frame(group, MI)
+aspirin.df <- aspirin.df[sample(nrow(aspirin.df)),]
+rownames(aspirin.df) <- NULL
+write.csv(aspirin.df, file = "aspirin.csv", row.names = FALSE)
+
+aspirin.df <- read.csv(file = "aspirin.csv")
+
+xtabs(~ group + MI, data = aspirin.df)
+
+# what if we want to switch row and/or column ordering? Set the factor levels
+aspirin.df$group <- factor(aspirin.df$group, levels = c("Placebo","Aspirin"))
+aspirin.df$MI <- factor(aspirin.df$MI, levels = c("Yes","No"))
+
+xtabs(~ group + MI, data = aspirin.df)
+
 
 # calculate cell proportions
 prop.table(aspirin)
@@ -232,6 +252,18 @@ lung.cancer <- array(data = c(126,35,100,61,
 # Table 3.3
 ftable(lung.cancer, row.vars = c("city","smoking"))
 
+# create csv file of lung cancer data
+# lung.cancer.tab <- as.table(lung.cancer)
+# lung.cancer.df <- as.data.frame(lung.cancer.tab)
+# lung.cancer.df <- data.frame(sapply(lung.cancer.df[,-4], rep, times = lung.cancer.df$Freq))
+# write.csv(lung.cancer.df, file = "lung_cancer.csv", row.names = FALSE)
+
+lung.cancer.df <- read.csv("lung_cancer.csv")
+sapply(lung.cancer.df, class)
+
+xtabs(~ smoking + lung.cancer + city, data = lung.cancer.df)
+# notice that default ordering is alphabetical
+
 oddsratio(lung.cancer[,,1])$measure
 oddsratio(lung.cancer[,,1], rev = "both")$measure
 
@@ -279,7 +311,51 @@ agegpname <- c("<10","11-20","21-30","31-40","41-50","51-60","61-70","71-80")
 agegpname[ceiling(age/10)] # not a factor
 
 
-# rate models -------------------------------------------------------------
+
+# glms --------------------------------------------------------------------
+
+m1 <- glm(MI ~ group, data=aspirin.df, family = binomial)
+summary(m1)
+coef(m1)
+coef(m1)[2]
+exp(coef(m1)[2]) # odds ratio
+
+# Those on aspirin 83% higher odds of NOT having a heart attack.
+
+predict(m1, newdata = data.frame(group = c("Placebo","Aspirin")))
+predict(m1, newdata = data.frame(group = c("Placebo","Aspirin")), type = "response")
+
+# predicted probabilities of not having heart attack
+
+# Let's make "No" the baseline so we get predicted probabilities for "Yes"
+aspirin.df$MI <- relevel(aspirin.df$MI, ref = "No")
+aspirin.df$group <- relevel(aspirin.df$group, ref = "Aspirin")
+m1 <- glm(MI ~ group, data=aspirin.df, family = binomial)
+summary(m1)
+coef(m1)
+coef(m1)[2]
+exp(coef(m1)[2]) # odds ratio
+# predicted probabilities
+predict(m1, newdata = data.frame(group = c("Placebo","Aspirin")), type = "response")
+
+# visualize model
+library(effects)
+plot(allEffects(m1))
 
 
+m2 <- glm(lung.cancer ~ smoking + city, data = lung.cancer.df, family = binomial)
+summary(m2)
+coef(m2)
+exp(coef(m2)[2]) # almost same as common odds ratio estimated by CMH Test
+confint(m2, parm = "smokingsmokers")
+exp(confint(m2, parm = "smokingsmokers")) # almost identical to CI given by CMH Test
 
+# Alternative to Breslow-Day
+# Test if interaction is significant
+m3 <- glm(lung.cancer ~ smoking * city, data = lung.cancer.df, family = binomial)
+summary(m3)
+anova(m3)
+car::Anova(m3) # last line almost identical to Breslow-Day Test
+
+# visualize model
+plot(allEffects(m3))
