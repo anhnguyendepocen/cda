@@ -359,3 +359,77 @@ car::Anova(m3) # last line almost identical to Breslow-Day Test
 
 # visualize model
 plot(allEffects(m3))
+
+
+# Using data in Ch 1 of Applied Logistic Regression
+
+# chd <- read.table("C:/users/jcf2d/Box Sync/_statistics/ALR/chdage.dat")
+# names(chd) <- c("id","age","chd")
+# str(chd)
+# # write to csv
+# write.csv(chd, file = "chd.csv", row.names = FALSE)
+
+chd <- read.csv("chd.csv")
+
+# fig 1.1
+plot(chd ~ jitter(age), data=chd, ylim=c(0,1))
+
+# add age group variable
+chd$agrp <- cut(x = chd$age, breaks = c(0, 29, 34, 39, 44, 49, 54, 59, 100), 
+                labels = c("<29", "30-34","35-39","40-44","45-49","50-54","55-59",">60"))
+table(chd$agrp)
+aggregate(chd ~ age, data = chd, mean)
+
+
+# Table 1.2
+library(dplyr)
+chd2 <- chd %>% 
+  group_by(agrp) %>% 
+  summarise(n = n(), 
+            absent = sum(chd==0), 
+            present = sum(chd==1),
+            proportion = round(present/n,2))
+chd2
+as.data.frame(chd2)
+
+# fig 1.2
+plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Percent with CHD")
+with(chd2, lines(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion, type = "b"))
+
+
+mod1 <- glm(chd ~ age, data=chd, family=binomial)
+summary(mod1)
+predict(mod1)
+predict(mod1, type="response")
+
+prd <- predict(mod1, newdata = data.frame(age = seq(20,70,1)), type = "response")
+lines(x = seq(20,70,1), y = prd, col = "blue")
+
+library(effects)
+plot(allEffects(mod1))
+plot(allEffects(mod1), type="response")
+
+
+# extract the log-likelihood
+logLik(mod1)
+
+mod0 <- glm(chd ~ 1, data=chd, family=binomial)
+summary(mod0)
+logLik(mod0)
+
+# evaluation of G
+anova(mod0, mod1)
+
+# manually
+G <- -2*log(exp(logLik(mod0))/exp(logLik(mod1)))
+# or this way
+G <- 2*(logLik(mod1) - logLik(mod0))
+
+# confidence intervals
+# Table 1.4
+summary(mod1)$cov.unscaled
+
+confint(mod1)
+predict(object = mod1, newdata = data.frame(age=50), type="response", se.fit = TRUE)$se.fit
+

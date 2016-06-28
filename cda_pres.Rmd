@@ -297,7 +297,10 @@ For our aspirin data, the odds of MI in the placebo group is about 83% higher th
   (aspirin[1,2] * aspirin[2,1])
 ```
 
-Again, we'll use the `epitools` package for easier calculation of odds ratios and to obtain confidence intervals. Let's go to R!
+Again, we'll use the `epitools` package for easier calculation of odds ratios and to obtain confidence intervals.    
+\ 
+
+Let's go to R!
 
 ## Example 2
 
@@ -475,23 +478,168 @@ Another way to analyze categorical data is to _model_ it as a linear function of
 
 By _linear function_ we mean a weighted sum of variables. Say we model Y as a linear function of X and Z and obtain the following:   
 
-$$Y = 2.6X + 0.04Z$$
+$$Y = 0.65X + 0.04Z$$
 
-This says we approximate Y by adding 2.6 * X and 0.04 * Z. 
+This says we approximate Y by adding 0.65 * X and 0.04 * Z. 
 
 ## Logistic regression
 
 The most common method of modeling categorical data is _logistic regression_.
 
-- Logistic regression is for modeling binary outcomes (a categorical variable with two levels)
+- Binary logistic regression is for modeling binary outcomes (a categorical variable with two levels)
 - Multinomial logistic regression is for modeling multiple unordered outcomes (a nominal categorical variable with more than two levels)
 - Ordered logistic regression is for modeling multiple ordered outcomes (an ordered categorical variable with more than two levels)
 
 We will just cover binary logistic regression.
+
+## Example 3
+
+Explore the relationship between age and presence/absence of coronary heart disease (CHD) in a study population.
+
+```{r}
+chd <- read.csv("chd.csv")
+head(chd)
+```
+
+## Scatterplot of CHD by age
+
+Difficult to describe this relationship.
+
+```{r}
+plot(chd ~ jitter(age), data=chd, ylim=c(0,1), axes = "F", xlab = "Age")
+axis(side = 1, at = seq(20,70,10))
+axis(side = 2, at = c(0,1))
+box()
+```
+
+## Transform the data to better understand relationship
+
+Calculate proportion of CHD within age groups.
+
+```{r message=FALSE, cache=TRUE}
+chd$agrp <- cut(x = chd$age, breaks = c(0, 29, 34, 39, 44, 49, 54, 59, 100), 
+                labels = c("<29", "30-34","35-39","40-44","45-49","50-54","55-59",">60"))
+library(dplyr)
+chd2 <- chd %>% 
+  group_by(agrp) %>% 
+  summarise(n = n(), 
+            absent = sum(chd==0), 
+            present = sum(chd==1),
+            proportion = round(present/n,2)) %>% 
+  as.data.frame()
+chd2
+```
+
+
+## Scatterplot of proportion with CHD by age group
+
+```{r}
+plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
+with(chd2, lines(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion, type = "b"))
+```
+
+## A function to model the relationship
+
+Modeling the data in the previous graph essentially means finding a smooth mathematical function that describes the relationship between age and proportion with CHD.    
+\ 
+
+The function would allow us to estimate the probability of CHD in the study population given a certain age.   
+\ 
+
+The function would also allow us to summarize how the probability of CHD changes as age increases.    
+\ 
+
+The function needs to work such that plugging in age produces a number between 0 and 1. _This is basically what logistic regression ensures._    
+\ 
+
+## Performing logistic regression in R
+
+We use the `glm` function with the `family` argument set to `binomial` to perform logistic regression in `R`.   
+\ 
+
+For the CHD, data this would be done as follows:
+
+```{r echo=TRUE}
+mod1 <- glm(chd ~ age, data = chd, family = binomial)
+```
+
+This performs binary logistic regression and saves the result to an object we called `mod1`.   
+\ 
+
+`chd ~ age` means "model chd as a function of age". 
+
+## Viewing logistic regression results
+
+Calling `summary` on our model object will return a summary of the logistic regression. 
+
+```{r echo=TRUE, results='hide'}
+summary(mod1)
+```
+
+The "formula" for our functional model is in the "Coefficients" section. For the model we fit:
+
+$$P(\text{chd}) = -5.31 + 0.11 * \text{age}$$
+
+Notice if we plug in an age = 60, we get chd = 1.29. That's because the response is on the _logit_, or _log-odds_, scale! 
+
+## More on the logit
+
+The logit transformation transforms values ranging from 0 to 1, to numbers ranging from $-\infty$ to $+\infty$.    
+\ 
+
+To make our model return a number between 0 and 1, we need to take the _inverse logit_. Fortunately R will do this for us. Here's how:
+
+```{r echo=TRUE, results='hide'}
+predict(mod1, type="response")
+```
+
+This will return the predicted probabilities for our data. We can also request predicted probabilities for certain age values.
+
+```{r echo=TRUE, results='hide'}
+predict(mod1, type="response", 
+        newdata = data.frame(age = c(60,65,70)))
+```
+
+## Interpreting coefficients
+
+If we exponentiate a variable's coefficient in a logistic regression model we get an odds ratio estimate of that variable's effect on the response.    
+\ 
+
+`exp(0.11) = 1.116`  
+\ 
+
+This says the odds of CHD increase by about 12% for every one year increase in age. To see how the odds change for every 10 years we could do this:    
+\ 
+
+`exp(0.11 * 10) = 3.004`    
+\ 
+
+The odds of CHD for a 50 year old are about 3 times that of a 40 year old. 
+
+## Multiple logistic regression
+
+The power of logistic regression is being able to include multiple independent variables in your model, categorical or continuous. This allows us to "control" for other variables.     
+\ 
+
+The odds ratio interpetation of the coefficients is the same, but now it is in the context of the additional variables being held constant.    
+\ 
+
+Simply add additional variables to your model with `+`. For example:   
+\ 
+
+`mod2 <- glm(chd ~ age + smoking + bp, data = chd,` 
+`            family = binomial)`    
+\ 
+
+Let's go to R!
+
 
 ## Topics we haven't covered
 
 
 ## References
 
-Agresti, A. _An Introduction to Categorical Data Analysis_. (1996) - **The source for much of this workshop**.
+Agresti, A. _An Introduction to Categorical Data Analysis_. (1996) 
+
+Hosmer, D. and Lemeshow, S. _Applied Logistic Regression_, 2nd Ed.. (2000)
