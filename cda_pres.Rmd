@@ -72,17 +72,17 @@ aspirin <- matrix(data = c(189, 104, 10845, 10933),
 
 
 ```{r}
-addmargins(aspirin)
+aspirin
 ```
 
 Are these two categorical variables associated?
  
 ## Some analysis options
 
-1. Compare proportion of MI for placebo group versus proportion of MI for aspirin group. (Difference of Proportions)
-2. Examine ratio of MI proportions for both groups. (Risk Ratio or Relative Risk)
-3. Examine ratio of the estimated odds of MI for both groups. (Odds Ratio)
-4. Hypothesis test of independence between two variables (Chi-Square Test)
+1. Hypothesis test of independence between two variables (Chi-Square Test)
+2. Compare proportion of MI for placebo group versus proportion of MI for aspirin group. (Difference of Proportions)
+3. Examine ratio of MI proportions for both groups. (Risk Ratio or Relative Risk)
+4. Examine ratio of the estimated odds of MI for both groups. (Odds Ratio)
 
 ## Getting the data into R "by hand"
 
@@ -99,6 +99,14 @@ aspirin <- matrix(data = c(189, 104, 10845, 10933),
 
 We now have a _contingency table_ in the form of a matrix ready for analysis.
 
+## Our matrix
+
+```{r echo=TRUE}
+aspirin
+```
+
+Notice the dimensions are labeled and the rows are in the order we specified.
+
 ## Getting the data into R by import
 
 Data is often stored in txt, csv or xlsx formats, or stored in another stats program. There are several ways to import such data into R.
@@ -111,29 +119,31 @@ Data is often stored in txt, csv or xlsx formats, or stored in another stats pro
 
 Importing data in this manner creates a _data frame_. To form a contingency table from variables stored in a data frame, we can use the `table` or `xtabs` functions.
 
-## The `table` function
+## Example of `read.csv` for importing data
 
-`table` forms a contingency table from vectors. Say we have a data frame called `dat` with columns called `X` and `Y`.  
-```{r echo=FALSE}
-set.seed(4)
-dat <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T))
-head(dat)
+If your csv file has a header, and the csv file is in your working directory, then we simply need to give read.csv the name of the csv file. 
+
+```{r echo=TRUE}
+aspirin2 <- read.csv("aspirin.csv")
+head(aspirin2)
 ```
 
 
-`table(dat$X, dat$Y)` creates a 2 x 2 table with counts of `X` on the rows and counts of `Y` on the columns.
 
-## `table` example
+## The `table` function
+
+`table` forms a contingency table from vectors. The first vector becomes the rows and the second vector the columns. Notice the rows and columns are placed in alphabetical order:
 
 ```{r echo=TRUE}
-table(dat$X, dat$Y)
+table(aspirin2$group, aspirin2$MI)
 ```
 
 This works too:
 ```{r results='hide', echo=TRUE}
-with(dat, table(X, Y))
+with(aspirin2, table(group, MI))
 
 ```
+
 
 ## The `xtabs` function
 
@@ -149,23 +159,23 @@ Syntax:
 
 ## `xtabs` example 1
 
-This returns the same thing as `table(dat$X, dat$Y)` except with rows and columns labeled:
+This returns the same thing as `table(aspirin2$group, aspirin2$MI)` except with rows and columns labeled:
 
 ```{r echo=TRUE}
-xtabs(~ X + Y, data = dat)
+xtabs(~ group + MI, data = aspirin2)
 ```
 
 ## `xtabs` example 2
 
-Say our data looks like this:
+Say our data frame looks like this:
 
 ```{r echo=FALSE}
-dat2 <- as.data.frame(table(dat$X, dat$Y))
-names(dat2)[1:2] <- c("X","Y")
+aspirin3 <- as.data.frame(table(aspirin2$group, aspirin2$MI))
+names(aspirin3)[1:2] <- c("group","MI")
 ```
 
 ```{r echo=TRUE}
-dat2
+aspirin3
 ```
 
 ## `xtabs` example 2
@@ -173,7 +183,7 @@ dat2
 We can use `xtabs` to create a table like so:
 
 ```{r echo=TRUE}
-xtabs(Freq ~ X + Y, data = dat2)
+xtabs(Freq ~ group + MI, data = aspirin3)
 ```
 
 
@@ -211,7 +221,7 @@ The basic usage is to add row- and column-wise totals as well as the table total
 addmargins(aspirin)
 ```
 
-See `?addmargins` for much advanced usage.
+See `?addmargins` for advanced usage.
 
 ## Analysis: Chi-square test
 
@@ -535,8 +545,8 @@ chd2
 
 ```{r}
 plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
-with(chd2, lines(x = c(25, 32, 37, 42, 47, 52, 57, 65),
-                  y = chd2$proportion, type = "b"))
+with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion))
 ```
 
 ## A function to model the relationship

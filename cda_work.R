@@ -47,6 +47,11 @@ addmargins(aspirin)
 
 # compare proportions
 prop.test(aspirin)
+chisq.test(table(aspirin2$group, aspirin2$MI))
+
+asp.tab <- table(aspirin2$group, aspirin2$MI)
+chisq.test(asp.tab)
+
 # assumes counts of successes and failures are in the columns;
 # gives CI of difference in proportions if only two groups
 
