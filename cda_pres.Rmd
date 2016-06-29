@@ -2,7 +2,9 @@
 title: "Introductory Categorical Data Analysis in R"
 author: "Clay Ford"
 date: "Fall 2016"
-output: beamer_presentation
+output: 
+    beamer_presentation: 
+        fig_caption: false
 ---
 
 ```{r setup, include=FALSE}
@@ -577,39 +579,58 @@ mod1 <- glm(chd ~ age, data = chd, family = binomial)
 This performs binary logistic regression and saves the result to an object we called `mod1`.   
 \ 
 
-`chd ~ age` means "model chd as a function of age". 
+`chd ~ age` means "model chd as a function of age".   
+\ 
 
-## Viewing logistic regression results
-
-Calling `summary` on our model object will return a summary of the logistic regression. 
+To see the results:
 
 ```{r echo=TRUE, results='hide'}
 summary(mod1)
 ```
 
+
+## logistic regression results
+
+![](lreg_results.png)
+
+
+## Reviewing the results
+
 The "formula" for our functional model is in the "Coefficients" section. For the model we fit:
 
 $$P(\text{chd}) = -5.31 + 0.11 * \text{age}$$
 
-Notice if we plug in an age = 60, we get chd = 1.29. That's because the response is on the _logit_, or _log-odds_, scale! 
+Both are significant, which is to say they are significantly different from 0. (The intercept is almost always "significant".)   
+\ 
 
-## More on the logit
+The Null deviance summarizes goodness of fit for a model with no predictors. The Residual deviance summarizes goodness of fit for the model we fit. Ideally the residual deviance will be much smaller than the null deviance. 
+
+## The logit transformation
+
+Notice if we plug in an age = 60, we get chd = 1.29. That's because the response is on the _logit_, or _log-odds_, scale!   
+\ 
 
 The logit transformation transforms values ranging from 0 to 1, to numbers ranging from $-\infty$ to $+\infty$.    
 \ 
 
 To make our model return a number between 0 and 1, we need to take the _inverse logit_. Fortunately R will do this for us. Here's how:
 
-```{r echo=TRUE, results='hide'}
-predict(mod1, type="response")
-```
-
-This will return the predicted probabilities for our data. We can also request predicted probabilities for certain age values.
-
-```{r echo=TRUE, results='hide'}
+```{r echo=TRUE}
 predict(mod1, type="response", 
-        newdata = data.frame(age = c(60,65,70)))
+        newdata = data.frame(age = 60))
 ```
+
+
+## Our functional model with observed data
+
+```{r}
+plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
+with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion))
+lines(chd$age, predict(mod1, type="response"), col="blue")
+
+```
+
 
 ## Interpreting coefficients
 
@@ -642,14 +663,16 @@ Simply add additional variables to your model with `+`. For example:
 `            family = binomial)`    
 \ 
 
-Let's go to R!
-
-
-## Topics we haven't covered
+Let's go to `R`!
 
 
 ## References
 
-Agresti, A. _An Introduction to Categorical Data Analysis_. (1996) 
+Agresti, A. _An Introduction to Categorical Data Analysis_. (1996)    
+\ 
 
-Hosmer, D. and Lemeshow, S. _Applied Logistic Regression_, 2nd Ed.. (2000)
+Hosmer, D. and Lemeshow, S. _Applied Logistic Regression_, 2nd Ed.. (2000)   
+\ 
+
+Faraway, J. _Extending the Linear Model with R_. (2006)    
+\ 

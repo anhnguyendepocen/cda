@@ -438,3 +438,37 @@ summary(mod1)$cov.unscaled
 confint(mod1)
 predict(object = mod1, newdata = data.frame(age=50), type="response", se.fit = TRUE)$se.fit
 
+library(asbio)
+data(crabs)
+crabs$present <- ifelse(crabs$satell > 0, 1, 0)
+
+mod1 <- glm(present ~ width, data=crabs, family = binomial)
+summary(mod1)
+exp(confint(mod1, parm = "width"))
+# at least a 35% increase in the odds that a female has a satellite.
+
+pred.out <- predict(mod1, type = "response")
+pred.outC <- ifelse(pred.out > 0.5, 1, 0)
+table(crabs$present, pred.outC)
+(27 + 95)/nrow(crabs)
+
+mod2 <- glm(present ~ width + color, data=crabs, family = binomial)
+summary(mod2)
+anova(mod1, mod2)
+Anova(mod2)
+
+# Figure 5.4
+library(effects)
+plot(Effect(focal.predictors = c("width", "color"), mod = mod2), type = "response", multiline = TRUE)
+
+plot(allEffects(mod2), multiline=TRUE, type="response")
+
+
+
+# ROC curves
+library(ROCR)
+pred <- prediction(predictions = pred.outC, labels = crabs$present)
+perf <- performance(pred,measure = "tpr",x.measure="fpr")
+plot(perf)
+perf <- performance(pred,measure="sens", x.measure="spec")
+plot(perf)
