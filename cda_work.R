@@ -515,3 +515,9 @@ perf <- performance(pred,measure = "tpr",x.measure="fpr")
 plot(perf)
 perf <- performance(pred,measure="sens", x.measure="spec")
 plot(perf)
+
+library(faraway)
+data(orings)
+orings$damage <- ifelse(orings$damage > 0, 1, 0)
+write.csv(orings, file = "orings.csv", row.names = FALSE)
+

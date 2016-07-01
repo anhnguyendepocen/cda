@@ -453,14 +453,28 @@ anova(mod.lc2)
 Anova(mod.lc2) # last line almost identical to Breslow-Day Test
 
 
-# Visualization -----------------------------------------------------------
+# YOUR TURN!
 
-# mosaic plots
-mosaicplot(aspirin)
+# The 1986 crash of the space shuttle Challenger was linked to failure of O-ring
+# seals in the rocket engines. Data was collected on the 23 previous shuttle
+# missions. The launch temperature on the day of the crash was 31 degrees F.
 
-# Barplots
-library(ggplot2)
-ggplot(aspirin.df, aes(x=group, fill=MI)) + geom_bar(width = 0.25) 
-ggplot(aspirin.df, aes(x=group, fill=MI)) + geom_bar(width = 0.25, position = "dodge") 
+orings <- read.csv("orings.csv")
+# convert damage (0,1) to a factor
+orings$damage <- factor(orings$damage)
+str(orings)
+summary(orings)
+
+# 1, Model damage as a function of temp. 
+# 2. Interpret the coefficient on temp.
+# 3. Predict the probability of damage at 55 degrees F.
+m1 <- glm(damage ~ temp, data = orings, family = binomial)
+summary(m1)
+
+exp(coef(m1)[2])
+
+predict(m1, newdata = data.frame(temp = 55), type = "response")
+
+plot(allEffects(m1), type = "response")
 
 
