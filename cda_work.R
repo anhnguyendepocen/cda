@@ -70,10 +70,10 @@ oddsratio(x = aspirin, rev = "both")
 
 # make an aspirin data frame
 # id <- seq(sum(margin.table(aspirin,margin = 1)))
-grp <- rep(c("placebo","aspirin"), margin.table(aspirin,margin = 1))
-mi <- c(rep(c("yes","no"), aspirin[1,]),rep(c("yes","no"), aspirin[2,]))
-aspirin.df <- data.frame(grp, mi = factor(mi, levels = c("yes","no")))
-head(aspirin.df)
+# grp <- rep(c("placebo","aspirin"), margin.table(aspirin,margin = 1))
+# mi <- c(rep(c("yes","no"), aspirin[1,]),rep(c("yes","no"), aspirin[2,]))
+# aspirin.df <- data.frame(grp, mi = factor(mi, levels = c("yes","no")))
+# head(aspirin.df)
 
 xtabs(~ grp + mi, data=aspirin.df)
 asp.table <- xtabs(~ grp + mi, data=aspirin.df)
@@ -87,6 +87,16 @@ aspirin.tab <- as.table(aspirin)
 library(vcd)
 oddsratio(aspirin)
 epitools::oddsratio(aspirin, rev = "both")
+
+
+mosaicplot(aspirin)
+
+aspirin.df2 <- as.data.frame(aspirinT)
+
+library(ggplot2)
+ggplot(aspirin.df, aes(x=group, fill=MI)) + geom_bar(width = 0.25) 
+ggplot(aspirin.df, aes(x=group, fill=MI)) + geom_bar(width = 0.25, position = "dodge") 
+
 
 # sieve plot?
 
@@ -262,6 +272,39 @@ ftable(lung.cancer, row.vars = c("city","smoking"))
 # lung.cancer.df <- as.data.frame(lung.cancer.tab)
 # lung.cancer.df <- data.frame(sapply(lung.cancer.df[,-4], rep, times = lung.cancer.df$Freq))
 # write.csv(lung.cancer.df, file = "lung_cancer.csv", row.names = FALSE)
+
+
+# save the table and create a data frame with Freq column
+lung.cancer2 <- xtabs(~ smoking + lung.cancer + city, data = lc.df)
+lc.df2 <- as.data.frame(lung.cancer2)
+lc.df2
+
+# working with a three-way table
+prop.table(lung.cancer2) # all cells sum to 1
+
+# row-wise proportions for each city (ie, proportion of lung.cancer by smoking)
+prop.table(lung.cancer2, margin = c(1,3))
+# what does this do?
+prop.table(lung.cancer2, margin = 1)
+
+
+df <- as.data.frame(prop.table(lung.cancer2, margin = c(1,3)))
+library(ggplot2)
+ggplot(df, aes(x = smoking, color=lung.cancer, y = Freq, group=lung.cancer)) + 
+  geom_point() + geom_line() +
+  facet_wrap(~ city)
+
+lung.cancer[,,1]
+lung.cancer[,,"Shanghai"]
+# show city name
+lung.cancer[,,1, drop = FALSE]
+
+# all smoking rows
+lung.cancer[1,,]
+# all smokers = yes
+lung.cancer[1,1,]
+lung.cancer["smokers","yes",]
+
 
 lung.cancer.df <- read.csv("lung_cancer.csv")
 sapply(lung.cancer.df, class)

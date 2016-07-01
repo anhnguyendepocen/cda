@@ -19,6 +19,7 @@ Topics on tap:
 - Analysis of three-way contingency tables
 - Logistic regression
 
+The focus will be on application, not statistical theory.
 
 ## Categorical Data
 
@@ -83,8 +84,8 @@ Are these two categorical variables associated?
 
 1. Hypothesis test of independence between two variables (Chi-Square Test)
 2. Compare proportion of MI for placebo group versus proportion of MI for aspirin group. (Difference of Proportions)
-3. Examine ratio of MI proportions for both groups. (Risk Ratio or Relative Risk)
-4. Examine ratio of the estimated odds of MI for both groups. (Odds Ratio)
+3. Examine ratio of MI proportions. (Risk Ratio or Relative Risk)
+4. Examine ratio of the estimated odds of MI. (Odds Ratio)
 
 ## Getting the data into R "by hand"
 
@@ -126,8 +127,8 @@ Importing data in this manner creates a _data frame_. To form a contingency tabl
 If your csv file has a header, and the csv file is in your working directory, then we simply need to give read.csv the name of the csv file. 
 
 ```{r echo=TRUE}
-aspirin2 <- read.csv("aspirin.csv")
-head(aspirin2)
+aspirin.df <- read.csv("aspirin.csv")
+head(aspirin.df)
 ```
 
 
@@ -137,12 +138,12 @@ head(aspirin2)
 `table` forms a contingency table from vectors. The first vector becomes the rows and the second vector the columns. Notice the rows and columns are placed in alphabetical order:
 
 ```{r echo=TRUE}
-table(aspirin2$group, aspirin2$MI)
+table(aspirin.df$group, aspirin.df$MI)
 ```
 
 This works too:
 ```{r results='hide', echo=TRUE}
-with(aspirin2, table(group, MI))
+with(aspirin.df, table(group, MI))
 
 ```
 
@@ -152,19 +153,19 @@ with(aspirin2, table(group, MI))
 The `xtabs` function can create a table in two different ways: 
 
 1. from a data frame where there is one observation per record
-2. from a data frame where each row represents total counts
+2. from a data frame where each row represents total counts for each group combination
 
 Syntax:    
 
-- `xtabs( ~ X + Y, data = dat)` - one obs per record   
-- `xtabs(Freq ~ X + Y, data = dat)` - each row has total counts stored in column called `Freq`
+- `xtabs( ~ group + MI, data = aspirin.df)` - one obs per record   
+- `xtabs(Freq ~ group + MI, data = aspirin.df)` - each row has total counts stored in column called `Freq`
 
 ## `xtabs` example 1
 
-This returns the same thing as `table(aspirin2$group, aspirin2$MI)` except with rows and columns labeled:
+This returns the same thing as `table(aspirin.df$group, aspirin.df$MI)` except with rows and columns labeled:
 
 ```{r echo=TRUE}
-xtabs(~ group + MI, data = aspirin2)
+xtabs(~ group + MI, data = aspirin.df)
 ```
 
 ## `xtabs` example 2
@@ -172,12 +173,12 @@ xtabs(~ group + MI, data = aspirin2)
 Say our data frame looks like this:
 
 ```{r echo=FALSE}
-aspirin3 <- as.data.frame(table(aspirin2$group, aspirin2$MI))
-names(aspirin3)[1:2] <- c("group","MI")
+aspirin.df2 <- as.data.frame(table(aspirin.df$group, aspirin.df$MI))
+names(aspirin.df2)[1:2] <- c("group","MI")
 ```
 
 ```{r echo=TRUE}
-aspirin3
+aspirin.df2
 ```
 
 ## `xtabs` example 2
@@ -185,7 +186,26 @@ aspirin3
 We can use `xtabs` to create a table like so:
 
 ```{r echo=TRUE}
-xtabs(Freq ~ group + MI, data = aspirin3)
+xtabs(Freq ~ group + MI, data = aspirin.df2)
+```
+
+
+## Don't forget to save tables if you want to analyze them
+
+These just print tables to the `R` console:
+
+```{r results='hide', echo=TRUE}
+table(aspirin.df$group, aspirin.df$MI)
+xtabs(~ group + MI, data = aspirin.df)
+xtabs(Freq ~ group + MI, data = aspirin.df2)
+```
+
+These save the tables for future use:
+
+```{r results='hide', echo=TRUE}
+aspirin.tab1 <- table(aspirin.df$group, aspirin.df$MI)
+aspirin.tab2 <- xtabs(~ group + MI, data = aspirin.df)
+aspirin.tab3 <- xtabs(Freq ~ group + MI, data = aspirin.df2)
 ```
 
 
@@ -196,6 +216,8 @@ We sometimes want to work with tables to find proportions or marginal totals. Go
 - `prop.table` (cell proportions)
 - `margin.table` (get table margins)
 - `addmargins` (add table margins)
+
+We can also use subsetting brackets `[]` to extract cells, rows or columns of tables. 
 
 ## `prop.table` example
 
@@ -224,6 +246,38 @@ addmargins(aspirin)
 ```
 
 See `?addmargins` for advanced usage.
+
+## Subsetting brackets
+
+Specify row/column number, or row/column name, in backets to extract parts of a table.   
+\ 
+
+Extract the row 1, column 1 cell:
+```{r echo=TRUE}
+aspirin[1,1]
+
+```
+
+or:
+```{r echo=TRUE}
+aspirin["Placebo","Yes"]
+
+```
+
+## Subsetting brackets (cont'd)
+
+Extract row 1 (the Placebo group):
+
+```{r echo=TRUE}
+aspirin[1,]
+```
+
+Extract column 2 (all cases of MI = "No"):
+```{r echo=TRUE}
+aspirin[,"No"]
+```
+
+
 
 ## Analysis: Chi-square test
 
@@ -357,9 +411,9 @@ The two-way table formed when controlling for a third variable is called a _part
 2. Test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city. (Breslow-Day Test)
 3. Estimate a _common odds ratio_ if association seems stable across the partial tables.
 
-## Getting data into R
+## Getting data into `R`
 
-We demonstrate how to get this data into R in the R script that accompanies this workshop. The code doesn't fit comfortably onto slides.    
+We demonstrate how to get this data into `R` in the `R` script that accompanies this workshop. The code doesn't fit comfortably onto slides.    
 \ 
 
 
@@ -371,37 +425,45 @@ Once again we can use the `table` and `xtabs` functions to create our contingenc
 ## The `table` function for 3-way tables
 
 ```{r echo=FALSE}
-set.seed(1)
-dat3 <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T),
-                  Z = sample(c("Male","Female"), 10, replace = T))
+lc.df <- read.csv("lung_cancer.csv")
+# set.seed(1)
+# dat3 <- data.frame(X = sample(c("Ctrl","Trt"),10, replace = T), Y = sample(c("Yes","No"),10, replace = T),
+#                   Z = sample(c("Male","Female"), 10, replace = T))
 ```
 
 The first vector in the `table` function forms the rows, the second the columns, and each subsequent vector a layer.
 
 ```{r echo=TRUE}
-table(dat3$X, dat3$Y, dat3$Z)
+table(lc.df$smoking, lc.df$lung.cancer, lc.df$city)
 ```
 
 ## The `xtabs` function for 3-way tables
-
 
 
 ```{r echo=TRUE}
 # one row per obs
-xtabs( ~ X + Y + Z, data = dat3) 
+xtabs( ~ smoking + lung.cancer + city, data = lc.df) 
 ```
+
+## If our data look like this...
+
+```{r}
+lc.df2 <- as.data.frame(table(lc.df$smoking, lc.df$lung.cancer, lc.df$city))
+names(lc.df2)[1:3] <- c("smoking","lung.cancer","city")
+```
+
+```{r echo=TRUE}
+head(lc.df2, n = 8)
+
+```
+
 
 ## The `xtabs` function for 3-way tables
 
 
-```{r}
-dat4 <- as.data.frame(table(dat3$X, dat3$Y, dat3$Z))
-names(dat4)[1:3] <- c("X","Y","Z")
-```
-
 ```{r echo=TRUE}
 # one row per cell Freq
-xtabs(Freq ~ X + Y + Z, data = dat4) 
+xtabs(Freq ~ smoking + lung.cancer + city, data = lc.df2) 
 ```
 
 ## working with 3-way tables
@@ -412,6 +474,8 @@ Working with 3-way tables is a little trickier due to the third dimension. We ca
 - `margin.table` (get table margins)
 - `addmargins` (add table margins)
 - `ftable` ("flatten" contingency tables into two dimensions)
+
+We can also use subsetting brackets to extract parts of tables, but again need to specifiy third dimension.
 
 ## `prop.table` example
 
@@ -446,7 +510,33 @@ By default, the third layer becomes the columns while the first and second layer
 ftable(lung.cancer)
 ```
 
+## Subsetting brackets for 3-way tables
 
+Just the partial table for Beijing:
+
+```{r echo=TRUE}
+lung.cancer[,,1]
+```
+
+Or:
+
+```{r echo=TRUE, results='hide'}
+lung.cancer[,,"Beijing"]
+```
+
+## Subsetting brackets for 3-way tables (cont'd)
+
+All smokers with lung cancer:
+
+```{r echo=TRUE}
+lung.cancer["smokers","yes",]
+```
+
+All people with lung cancer:
+
+```{r echo=TRUE}
+lung.cancer[,"yes",]
+```
 
 ## Analysis: Cochran-Mantel-Haenszel (CMH) Test
 
@@ -472,7 +562,7 @@ The CMH Test and common odds ratio estimate is really only appropriate when asso
 
 ## Analysis: Breslow-Day Test
 
-We can use the `epi.2by2` function in the `epiR` package to test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city.    
+We can use the `BreslowDayTest` function in the `DescTools` package to test the null hypothesis that the odds ratio between smoking and lung cancer is the same at each level of city.    
 \ 
 
 As we'll see in the R script, the result of the Breslow-Day Test for our lung cancer data is not significant.    
@@ -506,16 +596,18 @@ We will just cover binary logistic regression.
 
 ## Example 3
 
-Explore the relationship between age and presence/absence of coronary heart disease (CHD) in a study population.
+Explore the relationship between age and presence/absence of coronary heart disease (CHD) in a study population. (Table 1.1, _Applied Logistic Regression_, 2nd Ed.)
 
 ```{r}
 chd <- read.csv("chd.csv")
 head(chd)
 ```
 
+
+
 ## Scatterplot of CHD by age
 
-Difficult to describe this relationship.
+Difficult to describe this relationship based on this graph.
 
 ```{r}
 plot(chd ~ jitter(age), data=chd, ylim=c(0,1), axes = "F", xlab = "Age")
@@ -665,6 +757,44 @@ Simply add additional variables to your model with `+`. For example:
 
 Let's go to `R`!
 
+## logistic regression and analysis of contigency tables
+
+It turns out we can do most of the same analyses with logistic regression that we did with contingency tables.   
+\ 
+
+Recall the estimated odds ratio of MI for those on Placebo vs. Aspirin in our two-way contingency table: 1.83   
+\ 
+
+Recall the common odds ratio of lung cancer for smokers vs. nonsmokers in our 3-way contingency table: 2.17   
+\ 
+
+
+## The aspirin data analyzed with logistic regression
+
+
+```{r echo=TRUE}
+mod.asp <- glm(MI ~ group, data = aspirin.df, 
+               family = binomial)
+coef(mod.asp) # the model coefficients
+
+# odds ratio estimate
+exp(coef(mod.asp)[2]) 
+```
+
+
+## The lung cancer data analyzed with logistic regression
+
+
+
+```{r echo=TRUE}
+mod.lc <- glm(lung.cancer ~ smoking + city, data = lc.df, 
+               family = binomial)
+
+# common odds ratio estimate
+exp(coef(mod.lc)[2]) 
+```
+
+Let's go to R!
 
 ## References
 
@@ -676,3 +806,15 @@ Hosmer, D. and Lemeshow, S. _Applied Logistic Regression_, 2nd Ed.. (2000)
 
 Faraway, J. _Extending the Linear Model with R_. (2006)    
 \ 
+
+## Thanks for coming today!
+
+For help and advice with your statistical analysis: statlab@virginia.edu   
+\ 
+
+Sign up for more workshops or see past workshops:   
+http://data.library.virginia.edu/training/  
+\ 
+
+Register for the Research Data Services newsletter to stay up-to-date on RDS 
+events and resources: http://data.library.virginia.edu/newsletters/    
