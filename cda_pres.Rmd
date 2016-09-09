@@ -336,7 +336,7 @@ The odds are related to probability as follows:
 $$ odds = \frac{p}{1 - p} $$
 
 - When $p = 0.75$, the odds are $\frac{0.75}{0.25} =3$. We expect to observe 3 successes for every 1 failure. 
-- When $p = 0.25$, the odds are $\frac{0.25}{0.75} \approx \frac{1}{3}$. We expect to observe about 1 success for every 3 failures. 
+- When $p = 0.25$, the odds are $\frac{0.25}{0.75} = \frac{1}{3}$. We expect to observe about 1 success for every 3 failures. 
 
 ## odds ratios
 
@@ -370,7 +370,7 @@ Let's go to R!
 
 ## Example 2
 
-Eight studies in China about smoking and lung cancer. (_Intern. J. Epidemiol._, 21: 197-201, 1992) We want to investigate the relationship between smoking and lung cancer while controlling for city.
+Eight studies in China about smoking and lung cancer. (_Intern. J. Epidemiol._, 21:197-201,1992) We investigate the relationship between smoking and lung cancer while controlling for city.
 
 ```{r}
 lung.cancer <- array(data = c(126,35,100,61,
@@ -475,7 +475,7 @@ Working with 3-way tables is a little trickier due to the third dimension. We ca
 - `addmargins` (add table margins)
 - `ftable` ("flatten" contingency tables into two dimensions)
 
-We can also use subsetting brackets to extract parts of tables, but again need to specifiy third dimension.
+We can also use subsetting brackets to extract parts of tables, but again need to specify third dimension.
 
 ## `prop.table` example
 
@@ -506,7 +506,7 @@ addmargins(lung.cancer)
 
 By default, the third layer becomes the columns while the first and second layers are collapsed into the rows. You can specify which variables form the rows and columns using the `row.vars` and `col.vars` arguments.
 
-```{r}
+```{r echo=TRUE}
 ftable(lung.cancer)
 ```
 
@@ -586,7 +586,7 @@ This says we approximate Y by adding 0.65 * X and 0.04 * Z.
 
 ## Logistic regression
 
-The most common method of modeling categorical data is _logistic regression_.
+We model categorical data using  _logistic regression_.
 
 - Binary logistic regression is for modeling binary outcomes (a categorical variable with two levels)
 - Multinomial logistic regression is for modeling multiple unordered outcomes (a nominal categorical variable with more than two levels)

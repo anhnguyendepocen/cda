@@ -3,6 +3,8 @@
 # Introductory Categorical Data Analysis with R
 # Fall 2016
 
+# Ctrl + Enter to submit commands
+
 # packages used in this workshop
 pkgs <- c("epiR","epitools","car","effects")
 install.packages(pkgs)
@@ -12,6 +14,7 @@ library(DescTools)
 library(car)
 library(effects)
 
+
 # Two-Way Contingency Tables ----------------------------------------------
 
 # enter data as matrix and assign dimension names
@@ -19,6 +22,7 @@ aspirin <- matrix(data = c(189, 104, 10845, 10933),
                   ncol=2, 
                   dimnames = list("group" = c("Placebo","Aspirin"),
                                   "MI" = c("Yes","No")))
+aspirin
 # it's a matrix
 class(aspirin)
 
@@ -39,8 +43,10 @@ aspirin.df <- read.csv("aspirin.csv")
 # create tables
 table(aspirin.df$group, aspirin.df$MI)
 
-with(aspirin.df, table(group, MI)) # notice this adds dimension names to output
+# notice this adds dimension names to output
+with(aspirin.df, table(group, MI))
 
+# using xtabs
 xtabs(~ group + MI, data = aspirin.df)
 
 # What if we want to switch row and/or column ordering? Set the factor levels
@@ -78,8 +84,10 @@ addmargins(aspirin)
 
 
 # chi-square test
-# can use a table...
-chisq.test(aspirin)
+
+# can use a matrix or table:
+chisq.test(aspirin) # matrix
+chisq.test(aspirinT) # or table
 
 # ...or two vectors from a data frame
 chisq.test(aspirin.df$group, aspirin.df$MI)
@@ -88,7 +96,8 @@ chisq.test(aspirin.df$group, aspirin.df$MI)
 # prop.test
 
 # can use a table or matrix; just remember that the function assumes "successes"
-# are in the first column and "failures" in the second
+# (the event of interest) are in the first column and "failures" in the second
+aspirin
 prop.test(aspirin)
 
 # prop.test can also work directly with successes and number of trials
@@ -101,11 +110,16 @@ rm(x,n)
 # risk ratio and odds ratio
 
 # The epitools package provides functions for calculating risk ratios and odds
-# ratios.
+# ratios. The functions are...
 
-# Notice the following produces a different risk ratio estimate than what we saw
-# in the presentation:
+# riskratio()
+# oddsratio()
+
+# Let's try riskratio() using the aspirin matrix
 riskratio(aspirin)
+
+# Notice it produced a different risk ratio estimate than what we saw
+# in the presentation (1.817).
 
 # The reason for this is that epitools expects the table rows and columns to be
 # in a particular order, as follows (per its documentation):
@@ -180,6 +194,7 @@ riskratio(auto, rev = "both")
 # Estimate the odds ratio of fatality for seat belt use
 oddsratio(auto, rev = "both")
 
+# Back to the presentation!
 
 # Three-Way Contingency Tables --------------------------------------------
 
@@ -255,6 +270,10 @@ prop.table(margin.table(lung.cancer2, margin = c(1,3)), margin = 2)[2,]
 # add table margins
 addmargins(lung.cancer2)
 
+# Flatten table into two dimensions
+ftable(lung.cancer2)
+ftable(lung.cancer2, row.vars = c("city","smoking"))
+
 
 # Examples of extracting and subsetting three-way contingency tables
 
@@ -270,6 +289,7 @@ lung.cancer2[,,1, drop = FALSE]
 
 # Show just the smokers
 lung.cancer2[2,,]
+lung.cancer2[2,,,drop = FALSE]
 
 # Show just the smokers in Beijing
 lung.cancer2[2,,1]
@@ -277,12 +297,10 @@ lung.cancer2[2,,1, drop = FALSE]
 
 # Smokers with lung cancer
 lung.cancer2[2,2,]
+lung.cancer2[2,2,,drop=FALSE]
 lung.cancer2["smokers","yes",]
 
 
-# Flatten table into two dimensions
-ftable(lung.cancer2)
-ftable(lung.cancer2, row.vars = c("city","smoking"))
 
 
 # Cochran-Mantel-Haenszel (CMH) Test
@@ -303,7 +321,7 @@ mantelhaen.test(x = lc.df$smoking,
 oddsratio(lung.cancer2[,,1])
 oddsratio(lung.cancer2[,,"Beijing"])
 
-# or more precisely
+# View just odds ratio without other output:
 oddsratio(lung.cancer2[,,1])$measure
 oddsratio(lung.cancer2[,,1])$measure[2,] # just the bottom row
 
@@ -343,7 +361,12 @@ BreslowDayTest(lung.cancer2)
 # in admission practices.
 UCBAdmissions
 
-# If we ignore department we see evidence of sex bias:
+# If we ignore department we see evidence of sex bias (more females being
+# rejected):
+margin.table(UCBAdmissions, margin = c(1,2)) %>% 
+  prop.table(margin = 2)
+
+# this is the same as:
 prop.table(
   margin.table(UCBAdmissions, margin = c(1,2)), 
   margin = 2)
@@ -359,6 +382,7 @@ prop.table(UCBAdmissions[,,"A"], margin = 2)
 # example of Simpson's Paradox, where an association disappears or reverses
 # direction when a third variable is introduced into the analysis.
 
+
 # Logistic Regression -----------------------------------------------------
 
 
@@ -366,35 +390,11 @@ prop.table(UCBAdmissions[,,"A"], margin = 2)
 chd <- read.csv("chd.csv")
 head(chd)
 
-# plot data
-plot(chd ~ jitter(age), data=chd, ylim=c(0,1), axes = "F", xlab = "Age")
-axis(side = 1, at = seq(20,70,10)) 
-axis(side = 2, at = c(0,1))
-box()
-
-# create age groups and calculate proportion of CHD per age group
-chd$agrp <- cut(x = chd$age, breaks = c(0, 29, 34, 39, 44, 49, 54, 59, 100), 
-                labels = c("<29", "30-34","35-39","40-44","45-49","50-54","55-59",">60"))
-library(dplyr)
-chd2 <- chd %>% 
-  group_by(agrp) %>% 
-  summarise(n = n(), 
-            absent = sum(chd==0), 
-            present = sum(chd==1),
-            proportion = round(present/n,2)) %>% 
-  as.data.frame()
-chd2
-
-# Scatterplot of proportion with CHD by age group
-plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
-with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
-                  y = chd2$proportion))
-
-
 # perform logistic regression
 mod1 <- glm(chd ~ age, data = chd, family = binomial)
 summary(mod1)
 coef(mod1)
+coef(mod1)[2]
 exp(coef(mod1)[2]) # odds ratio
 
 # make a prediction for a person age 60
@@ -405,59 +405,18 @@ predict(mod1, type="response",
 # predictions for data used to fit model
 predict(mod1, type="response")
 
-# add fitted line to scatterplot of proportion with CHD by age group
-plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
-with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
-                  y = chd2$proportion))
-lines(x = chd$age, y = predict(mod1, type="response"), col="blue")
 
 # using the effects package
 plot(allEffects(mod1))
 plot(allEffects(mod1), type = "response")
 
-# Connecting logistic regression with contingency table analysis
-
-# revist the MI data
-oddsratio(x = aspirin.df$group, y = aspirin.df$MI)$measure
-
-# same analysis with logistic regression
-mod.asp <- glm(MI ~ group, data = aspirin.df, family = binomial)
-summary(mod.asp)
-coef(mod.asp) # just the coefficients
-coef(mod.asp)[2] 
-exp(coef(mod.asp)[2]) # odds ratio
-exp(confint(mod.asp, parm = "groupAspirin")) # CI for odds ratio
-
-
-# revist the lung cancer data
-mantelhaen.test(lung.cancer2)
-
-# same analysis with logistic regression
-mod.lc <- glm(lung.cancer ~ smoking + city, data = lc.df, family = binomial)
-summary(m2)
-coef(m2)
-coef(m2)[2]
-exp(coef(m2)[2]) # almost same as common odds ratio estimated by CMH Test
-confint(m2, parm = "smokingsmokers")
-exp(confint(m2, parm = "smokingsmokers")) # almost identical to CI given by CMH Test
-
-# The Breslow-Day test is analogous to an interaction in a model.
-BreslowDayTest(lung.cancer2)
-
-# same analysis with logistic regression
-mod.lc2 <- glm(lung.cancer ~ smoking + city + smoking:city, 
-               data = lung.cancer.df, family = binomial)
-summary(mod.lc2)
-anova(mod.lc2)
-# use Anova in the car package
-Anova(mod.lc2) # last line almost identical to Breslow-Day Test
-
-
 # YOUR TURN!
 
 # The 1986 crash of the space shuttle Challenger was linked to failure of O-ring
-# seals in the rocket engines. Data was collected on the 23 previous shuttle
-# missions. The launch temperature on the day of the crash was 31 degrees F.
+# seals in the rocket engines. Data was collected on the 23 previous shuttle 
+# missions. Each record contains temperature at launch and whether there was 
+# damage to the 0-rings (0 = no, 1 = yes). The launch temperature on the day of
+# the crash was 31 degrees F.
 
 orings <- read.csv("orings.csv")
 # convert damage (0,1) to a factor
@@ -478,3 +437,84 @@ predict(m1, newdata = data.frame(temp = 55), type = "response")
 plot(allEffects(m1), type = "response")
 
 
+# Back to presentation.
+
+
+# Connecting logistic regression with contingency table analysis ----------
+
+
+# revist the MI data
+oddsratio(x = aspirin.df$group, y = aspirin.df$MI)$measure
+
+# same analysis with logistic regression
+mod.asp <- glm(MI ~ group, data = aspirin.df, family = binomial)
+summary(mod.asp)
+coef(mod.asp) # just the coefficients
+coef(mod.asp)[2] 
+exp(coef(mod.asp)[2]) # odds ratio
+exp(confint(mod.asp, parm = "groupAspirin")) # CI for odds ratio
+
+
+# revist the lung cancer data
+mantelhaen.test(lung.cancer2)
+
+# same analysis with logistic regression
+mod.lc <- glm(lung.cancer ~ smoking + city, data = lc.df, family = binomial)
+summary(mod.lc)
+coef(mod.lc)
+coef(mod.lc)[2]
+exp(coef(mod.lc)[2]) # almost same as common odds ratio estimated by CMH Test
+confint(mod.lc, parm = "smokingsmokers")
+exp(confint(mod.lc, parm = "smokingsmokers")) # almost identical to CI given by CMH Test
+
+# The Breslow-Day test is analogous to an interaction in a model.
+BreslowDayTest(lung.cancer2)
+
+# same analysis with logistic regression
+mod.lc2 <- glm(lung.cancer ~ smoking + city + smoking:city, 
+               data = lc.df, family = binomial)
+summary(mod.lc2)
+anova(mod.lc2)
+# use Anova in the car package to get p-value
+Anova(mod.lc2) # last line almost identical to Breslow-Day Test
+
+
+
+
+# Appendix ----------------------------------------------------------------
+
+# plots for Logistic regression slides
+
+# plot data
+plot(chd ~ jitter(age), data=chd, ylim=c(0,1), axes = "F", xlab = "Age")
+axis(side = 1, at = seq(20,70,10)) 
+axis(side = 2, at = c(0,1))
+box()
+
+# create age groups and calculate proportion of CHD per age group
+chd$agrp <- cut(x = chd$age, breaks = c(0, 29, 34, 39, 44, 49, 54, 59, 100), 
+                labels = c("<29", "30-34","35-39","40-44","45-49","50-54","55-59",">60"))
+
+library(dplyr)
+chd2 <- chd %>% 
+  group_by(agrp) %>% 
+  summarise(n = n(), 
+            absent = sum(chd==0), 
+            present = sum(chd==1),
+            proportion = round(present/n,2)) %>% 
+  as.data.frame()
+chd2
+
+# Scatterplot of proportion with CHD by age group
+plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", 
+     xlab = "Age", 
+     ylab = "Proportion with CHD")
+with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion))
+
+
+# add fitted line to scatterplot of proportion with CHD by age group
+plot(seq(20,70, by=10),seq(0,1,by=0.2), type="n", xlab = "Age", ylab = "Proportion with CHD")
+with(chd2, points(x = c(25, 32, 37, 42, 47, 52, 57, 65),
+                  y = chd2$proportion))
+lines(x = chd$age, y = predict(mod1, type="response"), col="blue")
