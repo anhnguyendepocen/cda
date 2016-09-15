@@ -34,7 +34,7 @@ Categories can be _nominal_ or _ordered_.
 - Nominal example: Thai, Mexican, Italian, Chinese  
 - Ordinal example: mild, medium, hot, very hot  
 
-Whether your data are nominal or ordinal determines what kinds of statistical analyses you should use. Today we'll mainly focus on nominal data with two categories.
+Whether your data are nominal or ordinal determines what kinds of statistical analyses you should use. Today we'll focus on nominal data with two categories.
 
 ## Categorical data summaries and analyses
 
@@ -60,7 +60,6 @@ Three steps:
 2. manipulate it (if necessary) so it's suitable for analysis and/or visualization
 3. run the analysis and/or create some graphs
 
-Today we'll look at some strategies for each step that are useful for categorical data analysis.
 
 ## Example 1
 
@@ -69,8 +68,8 @@ Relationship between aspirin use and myocardial infarction (heart attacks) by th
 ```{r echo=FALSE}
 aspirin <- matrix(data = c(189, 104, 10845, 10933), 
                   ncol=2, 
-                  dimnames = list("group" = c("Placebo","Aspirin"),
-                                  "MI" = c("Yes","No")))
+                  dimnames = list(group = c("Placebo","Aspirin"),
+                                  MI = c("Yes","No")))
 ```
 
 
@@ -94,9 +93,9 @@ We can enter this manually if we like.
 ```{r echo=TRUE}
 aspirin <- matrix(data = c(189, 104, 10845, 10933), 
                   ncol = 2, 
-                  dimnames = list("group" = 
+                  dimnames = list(group = 
                                     c("Placebo","Aspirin"),
-                                  "MI" = 
+                                  MI = 
                                     c("Yes","No")))
 ```
 
@@ -109,6 +108,18 @@ aspirin
 ```
 
 Notice the dimensions are labeled and the rows are in the order we specified.
+
+## Converting matrix to a table
+
+We can convert our matrix to a `table` object, like so:
+
+```{r echo=TRUE}
+aspirinT <- as.table(aspirin)
+aspirinT
+```
+
+It doesn't make a difference for analysis purposes but does allow for some easy manipulation and visualization as we'll see in the R script.
+
 
 ## Getting the data into R by import
 
@@ -128,10 +139,24 @@ If your csv file has a header, and the csv file is in your working directory, th
 
 ```{r echo=TRUE}
 aspirin.df <- read.csv("aspirin.csv")
-head(aspirin.df)
+nrow(aspirin.df) # number of rows
+head(aspirin.df) # first 6 rows
 ```
 
+## A word about Factors
 
+If we view the structure of `aspirin.df` we notice that each column is stored as a _Factor_.
+
+```{r echo=TRUE}
+str(aspirin.df)
+```
+
+The `read.csv` function imports character data as Factors, which are integers with character levels. This is good for things like linear modeling (eg, logistic regression).   
+\ 
+
+If we didn't want character data turned into Factors, we could have done this:
+
+`read.csv("aspirin.csv", stringsAsFactors=FALSE)`.
 
 ## The `table` function
 
@@ -139,12 +164,6 @@ head(aspirin.df)
 
 ```{r echo=TRUE}
 table(aspirin.df$group, aspirin.df$MI)
-```
-
-This works too:
-```{r results='hide', echo=TRUE}
-with(aspirin.df, table(group, MI))
-
 ```
 
 
@@ -204,36 +223,43 @@ These save the tables for future use:
 
 ```{r results='hide', echo=TRUE}
 aspirin.tab1 <- table(aspirin.df$group, aspirin.df$MI)
-aspirin.tab2 <- xtabs(~ group + MI, data = aspirin.df)
-aspirin.tab3 <- xtabs(Freq ~ group + MI, data = aspirin.df2)
+aspirin.tab2 <- xtabs(~ group + MI, data=aspirin.df)
+aspirin.tab3 <- xtabs(Freq ~ group + MI, data=aspirin.df2)
 ```
+
 
 
 ## working with 2-way tables
 
-We sometimes want to work with tables to find proportions or marginal totals. Good functions to know include:
+We often want to work with tables to find proportions or marginal totals. Good functions to know include:
 
 - `prop.table` (cell proportions)
-- `margin.table` (get table margins)
+- `margin.table` (table margins)
 - `addmargins` (add table margins)
 
 We can also use subsetting brackets `[]` to extract cells, rows or columns of tables. 
 
 ## `prop.table` example
 
+`prop.table` calculates cell proportions.  
+\ 
+
 Specify `margin = 1` for row-wise proportions, `margin = 2` for column-wise proportions. Not specifying `margin` returns cell proportions summing to 1.
 
 ```{r echo=TRUE}
-prop.table(aspirin, margin = 1)
+prop.table(aspirinT, margin = 1)
 ```
 
 ## `margin.table` example
 
+`margin.table` calculates the marginal totals.   
+\ 
+
 Specify `margin = 1` for row-wise margins, `margin = 2` for column-wise margins. Not specifying `margin` sums all cell totals.
 
 ```{r echo=TRUE}
-margin.table(aspirin, margin = 1)
-margin.table(aspirin, margin = 2)
+margin.table(aspirinT, margin = 1)
+margin.table(aspirinT, margin = 2)
 
 ```
 
@@ -242,25 +268,25 @@ margin.table(aspirin, margin = 2)
 The basic usage is to add row- and column-wise totals as well as the table total. Specifying `margin=1` or `margin=2` shows only row or column totals, respectively.
 
 ```{r echo=TRUE}
-addmargins(aspirin)
+addmargins(aspirinT)
 ```
 
 See `?addmargins` for advanced usage.
 
 ## Subsetting brackets
 
-Specify row/column number, or row/column name, in backets to extract parts of a table.   
+Specify row/column number, or row/column name, in brackets to extract parts of a table.   
 \ 
 
 Extract the row 1, column 1 cell:
 ```{r echo=TRUE}
-aspirin[1,1]
+aspirinT[1,1]
 
 ```
 
 or:
 ```{r echo=TRUE}
-aspirin["Placebo","Yes"]
+aspirinT["Placebo","Yes"]
 
 ```
 
@@ -269,12 +295,12 @@ aspirin["Placebo","Yes"]
 Extract row 1 (the Placebo group):
 
 ```{r echo=TRUE}
-aspirin[1,]
+aspirinT[1,]
 ```
 
 Extract column 2 (all cases of MI = "No"):
 ```{r echo=TRUE}
-aspirin[,"No"]
+aspirinT[,"No"]
 ```
 
 
@@ -284,7 +310,7 @@ aspirin[,"No"]
 The chi-square test of independence tests the null hypothesis that two categorical variables are not associated with one another. We can use the `chisq.test` function for this.
 
 ```{r echo=TRUE}
-chisq.test(aspirin)
+chisq.test(aspirinT)
 ```
 
 A low p-value rejects the null of no association. Notice it doesn't tell you the strength of association or the direction. A Chi-square test is rarely sufficient for answering all the questions you'll have about your data.
@@ -294,7 +320,7 @@ A low p-value rejects the null of no association. Notice it doesn't tell you the
 Use the `prop.test` function to compare proportions of "successes". It can take a 2 x 2 table (or matrix) with counts of successes and failures, respectively, in the columns.
 
 ```{r echo=TRUE}
-prop.test(aspirin)
+prop.test(aspirinT)
 ```
 
 ## A drawback of difference in proportions
@@ -319,8 +345,8 @@ The _risk ratio_ (or _relative risk_) is simply the proportion of successes in o
 Risk ratio for aspirin data reveals the proportion of MI for placebo group was about 82% higher:
 
 ```{r echo=TRUE}
-prop.table(aspirin, margin = 1)[1,1] / 
-  prop.table(aspirin, margin = 1)[2,1]
+prop.table(aspirinT, margin = 1)[1,1] / 
+  prop.table(aspirinT, margin = 1)[2,1]
 
 ```
 
@@ -359,8 +385,8 @@ For this reason, the odds ratio is also known as the _cross-product ratio_.
 For our aspirin data, the odds of MI in the placebo group is about 83% higher than the odds of MI in the aspirin group:
 
 ```{r echo=TRUE}
-(aspirin[1,1] * aspirin[2,2]) / 
-  (aspirin[1,2] * aspirin[2,1])
+(aspirinT[1,1] * aspirinT[2,2]) / 
+  (aspirinT[1,2] * aspirinT[2,1])
 ```
 
 Again, we'll use the `epitools` package for easier calculation of odds ratios and to obtain confidence intervals.    
@@ -784,7 +810,7 @@ exp(coef(mod.asp)[2])
 
 ## The lung cancer data analyzed with logistic regression
 
-
+Exponentiating the smoking coefficient provides the same common odds ratio estimate as the Cochran-Mantel-Haenszel (CMH) Test.
 
 ```{r echo=TRUE}
 mod.lc <- glm(lung.cancer ~ smoking + city, data = lc.df, 
@@ -793,6 +819,23 @@ mod.lc <- glm(lung.cancer ~ smoking + city, data = lc.df,
 # common odds ratio estimate
 exp(coef(mod.lc)[2]) 
 ```
+
+## The lung cancer data analyzed with logistic regression
+
+Including an interaction in a logistic regression with two categorical predictors allows us to carry out a Breslow-Day test. The `anova` function called on a modeling object tests the significance of the interaction, which is the same as a Breslow-Day test.
+
+
+```{r echo=TRUE, eval=FALSE}
+mod.lc <- glm(lung.cancer ~ smoking + city
+              smoking:city, data = lc.df, 
+               family = binomial)
+
+# Breslow-Day test of homogeneity 
+# (ie, test if interaction is significant)
+anova(mod.lc) 
+```
+
+
 
 Let's go to R!
 
